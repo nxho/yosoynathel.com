@@ -1,0 +1,20 @@
+---
+layout: base.njk
+title: Film reviews
+eleventyImport:
+  collections: ["filmRatings"]
+---
+
+<article>
+  <h1>Film reviews</h1>
+
+  <ul class="film-list">
+    {% for film in collections.filmRatings %}
+    <li class="film-item">
+      <a href="{{ film.url }}">{{ film.data.title }}</a>
+      <time class="film-date" datetime="{{ film.data.watched | dateYYYYMMDD }}">{{ film.data.watched | dateYYYYMMDD }}</time>
+      <span class="film-rating" aria-label="Rating: {{ film.data.rating | ratingThumbs }}">{{ film.data.rating | ratingThumbs }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</article>

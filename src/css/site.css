@@ -1,0 +1,64 @@
+/* yosoynathel.com – site styles */
+:root {
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --color-text: #1a1a1a;
+  --color-bg: #fafafa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+  margin: 0;
+  padding: 2rem;
+  max-width: 65ch;
+  margin-inline: auto;
+}
+
+main {
+  min-height: 60vh;
+}
+
+a {
+  color: inherit;
+}
+
+/* Film reviews list – title, rating, and date in aligned columns */
+.film-list {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0 0;
+}
+
+.film-item {
+  display: grid;
+  grid-template-columns: 1fr 11ch 3rem;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.film-item:last-child {
+  border-bottom: none;
+}
+
+.film-item a {
+  font-weight: 500;
+}
+
+.film-rating {
+  font-size: 1.25em;
+  text-align: center;
+}
+
+.film-date {
+  color: #666;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}

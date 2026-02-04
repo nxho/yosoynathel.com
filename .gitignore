@@ -10,6 +10,10 @@
 
 # production
 /build
+/_site
+
+# Synced from Obsidian vault (source of truth is the vault)
+/src/content/*
 
 # misc
 .DS_Store

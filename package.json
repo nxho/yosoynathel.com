@@ -1,0 +1,20 @@
+{
+  "name": "yosoynathel.com",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "eleventy --serve",
+    "build": "eleventy",
+    "sync": "rsync -av --delete ~/Documents/personal/publish/ ./src/content/"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "@types/bun": "latest",
+    "markdown-it": "^14.1.0",
+    "markdown-it-obsidian": "^1.1.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
