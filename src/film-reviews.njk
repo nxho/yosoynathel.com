@@ -11,9 +11,9 @@ eleventyImport:
   <ul class="film-list">
     {% for film in collections.filmRatings %}
     <li class="film-item">
-      <a href="{{ film.url }}">{{ film.data.title }}</a>
+      <span class="film-title">{{ film.data.title }}</span>
       <time class="film-date" datetime="{{ film.data.watched | dateYYYYMMDD }}">{{ film.data.watched | dateYYYYMMDD }}</time>
-      <span class="film-rating" aria-label="Rating: {{ film.data.rating | ratingThumbs }}">{{ film.data.rating | ratingThumbs }}</span>
+      <span class="film-rating">{{ film.data.rating | ratingThumbs | safe }}</span>
     </li>
     {% endfor %}
   </ul>

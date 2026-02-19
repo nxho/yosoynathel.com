@@ -39,7 +39,7 @@ a {
   display: grid;
   grid-template-columns: 1fr 11ch 3rem;
   gap: 1rem;
-  align-items: baseline;
+  align-items: center;
   padding: 0.5rem 0;
   border-bottom: 1px solid #e5e5e5;
 }
@@ -48,13 +48,23 @@ a {
   border-bottom: none;
 }
 
-.film-item a {
+.film-title {
   font-weight: 500;
 }
 
 .film-rating {
-  font-size: 1.25em;
-  text-align: center;
+  text-align: left;
+}
+
+.film-rating-img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.film-rating-img-container {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
 }
 
 .film-date {

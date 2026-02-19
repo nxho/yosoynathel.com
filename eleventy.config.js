@@ -24,18 +24,31 @@ export default function (eleventyConfig) {
     return `${y}-${m}-${day}`;
   });
 
-  // Film ratings: 0 = thumbs down, 1 = thumbs up, 2 = two thumbs up
   eleventyConfig.addNunjucksFilter("ratingThumbs", (rating) => {
     const r = Number(rating);
-    if (r === 0) return "👎";
-    if (r === 1) return "👍";
-    if (r === 2) return "👍👍";
-    return "";
+    const img = {
+      src: "/images/ratings/nath.svg",
+      alt: "Thumbs up",
+    };
+
+    const imgEl = `<img src="${img.src}" alt="${img.alt}" class="film-rating-img" width="24" height="24" loading="lazy" />`;
+    let finalEl = "";
+    for (let i = 0; i < r; i++) {
+      finalEl += imgEl;
+    }
+
+    if (!img) return "";
+
+    return `
+    <div class="film-rating-img-container">
+      ${finalEl}
+    </div>`;
   });
 
   // Collection: all film ratings (markdown with tags: film + review), sorted by watched date (newest first).
   eleventyConfig.addCollection("filmRatings", (api) => {
-    return api.getFilteredByTags("film", "review")
+    return api
+      .getFilteredByTags("film", "review")
       .filter((entry) => entry.data.title && entry.data.rating != null)
       .sort((a, b) => {
         const d1 = a.data.watched ? new Date(a.data.watched) : new Date(0);
@@ -46,6 +59,7 @@ export default function (eleventyConfig) {
 
   // Copy CSS and static assets to output
   eleventyConfig.addPassthroughCopy("src/css");
+  eleventyConfig.addPassthroughCopy("src/images");
   // Copy images/assets from synced content (e.g. Obsidian embeds)
   eleventyConfig.addPassthroughCopy("src/content/**/*.png");
   eleventyConfig.addPassthroughCopy("src/content/**/*.jpg");
@@ -65,4 +79,4 @@ export default function (eleventyConfig) {
     // deleting _site, or run build once without --serve.
     cleanOutputDir: false,
   };
-};
+}
