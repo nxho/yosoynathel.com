@@ -1,19 +1,24 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
-/.pnp
+**/node_modules
+.pnp
 .pnp.js
 
 # testing
 /coverage
 
-# production
-/build
+# eleventy build output
 /_site
+/apps/site/_site
 
 # Synced from Obsidian vault (source of truth is the vault)
-/src/content/*
+/apps/site/src/content/*
+
+# Next.js build output
+/apps/photos/.next
+/apps/photos/out
+
+# Uploaded user content
+/apps/photos/public/uploads
 
 # misc
 .DS_Store
