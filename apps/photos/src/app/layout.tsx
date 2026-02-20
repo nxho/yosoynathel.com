@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "The Penthouse",
-  description: "Rosh and Nath's space",
+  title: "Photos",
+  description: "Photo canvas",
 };
 
 export default function RootLayout({

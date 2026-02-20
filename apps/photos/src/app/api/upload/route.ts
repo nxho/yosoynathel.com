@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
+import { validateAdminKey } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  if (!validateAdminKey(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const data = await request.formData();
     const file: File | null = data.get("file") as unknown as File;
+    const isBackground = data.get("background") === "true" || data.get("purpose") === "background";
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" });
@@ -67,26 +72,28 @@ export async function POST(request: NextRequest) {
       height,
     };
 
-    // Save to photos metadata file
-    const metadataPath = join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "photos.json"
-    );
-    let photos = [];
+    // Only add to photos list when not uploading as background
+    if (!isBackground) {
+      const metadataPath = join(
+        process.cwd(),
+        "public",
+        "uploads",
+        "photos.json"
+      );
+      let photos = [];
 
-    try {
-      if (existsSync(metadataPath)) {
-        const existingData = await readFile(metadataPath, "utf-8");
-        photos = JSON.parse(existingData);
+      try {
+        if (existsSync(metadataPath)) {
+          const existingData = await readFile(metadataPath, "utf-8");
+          photos = JSON.parse(existingData);
+        }
+      } catch (error) {
+        console.error("Error reading photos metadata:", error);
       }
-    } catch (error) {
-      console.error("Error reading photos metadata:", error);
-    }
 
-    photos.push(photoData);
-    await writeFile(metadataPath, JSON.stringify(photos, null, 2));
+      photos.push(photoData);
+      await writeFile(metadataPath, JSON.stringify(photos, null, 2));
+    }
 
     // Return the public URL
     const url = `/uploads/${filename}`;
