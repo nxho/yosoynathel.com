@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "No file uploaded" });
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({
-        success: false,
-        error: "File must be an image",
-      });
-    }
+    // Validate file type — check magic bytes, not client-supplied MIME/extension
+    const ALLOWED_SIGNATURES: Record<string, string> = {
+      jpeg: "ffd8ff",
+      png: "89504e47",
+      gif: "47494638",
+      webp: "52494646",
+    };
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -36,16 +36,29 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Detect type from magic bytes
+    const hex = buffer.slice(0, 8).toString("hex");
+    const detectedType = Object.entries(ALLOWED_SIGNATURES).find(([, sig]) =>
+      hex.startsWith(sig)
+    );
+
+    if (!detectedType) {
+      return NextResponse.json({
+        success: false,
+        error: "File must be a JPEG, PNG, GIF, or WebP image",
+      });
+    }
+
     // Create uploads directory if it doesn't exist
     const uploadsDir = join(process.cwd(), "public", "uploads");
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true });
     }
 
-    // Generate unique filename
+    // Generate unique filename using server-detected extension (not client-supplied)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = file.name.split(".").pop();
+    const extension = detectedType[0] === "jpeg" ? "jpg" : detectedType[0];
     const filename = `${timestamp}-${randomString}.${extension}`;
 
     const filepath = join(uploadsDir, filename);

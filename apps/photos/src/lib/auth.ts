@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
 
 const ADMIN_KEY_HEADER = "x-admin-key";
 
@@ -13,5 +14,12 @@ export function validateAdminKey(request: NextRequest): boolean {
   const key = request.headers.get(ADMIN_KEY_HEADER);
   if (!key) return false;
 
-  return key === secret;
+  try {
+    const secretBuf = Buffer.from(secret);
+    const keyBuf = Buffer.from(key);
+    if (keyBuf.length !== secretBuf.length) return false;
+    return timingSafeEqual(keyBuf, secretBuf);
+  } catch {
+    return false;
+  }
 }

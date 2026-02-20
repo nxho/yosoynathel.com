@@ -126,9 +126,11 @@ export async function DELETE(request: NextRequest) {
 
     // Remove image file from disk if it's a local upload (e.g. /uploads/xxx)
     const src = deleted?.src;
-    if (typeof src === "string" && src.startsWith("/uploads/")) {
-      const filePath = join(process.cwd(), "public", src.replace(/^\//, ""));
-      if (existsSync(filePath)) {
+    if (typeof src === "string") {
+      const uploadsDir = join(process.cwd(), "public", "uploads");
+      const filePath = join(uploadsDir, src.replace(/^\/uploads\//, ""));
+      // Ensure the resolved path is inside the uploads directory
+      if (filePath.startsWith(uploadsDir + "/") && existsSync(filePath)) {
         try {
           await unlink(filePath);
         } catch (e) {
