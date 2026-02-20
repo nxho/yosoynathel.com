@@ -5,10 +5,11 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:site": "bun --cwd apps/site run dev",
-    "dev:photos": "bun --cwd apps/photos run dev",
-    "build:site": "bun --cwd apps/site run build",
-    "build:photos": "bun --cwd apps/photos run build",
-    "sync": "bun --cwd apps/site run sync"
+    "dev": "bun run --filter '*' dev",
+    "dev:site": "cd apps/site && bun run dev",
+    "dev:photos": "cd apps/photos && bun run dev",
+    "build:site": "cd apps/site && bun run build",
+    "build:photos": "cd apps/photos && bun run build",
+    "sync": "cd apps/site && bun run sync"
   }
 }
