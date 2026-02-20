@@ -13,6 +13,7 @@
     "build:site": "cd apps/site && bun run build",
     "build:photos": "cd apps/photos && bun run build",
     "sync": "cd apps/site && bun run sync",
-    "generate:admin-key": "bun run scripts/generate-admin-key.ts"
+    "generate:admin-key": "bun run scripts/generate-admin-key.ts",
+    "deploy": "bun run scripts/deploy.ts"
   }
 }
