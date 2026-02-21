@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Upload, ImageIcon, Lock, LockOpen } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 const ADMIN_KEY_STORAGE = "photos-admin-key";
 const ADMIN_KEY_HEADER = "x-admin-key";
@@ -69,7 +69,9 @@ export function PhotoCanvas() {
     y: number;
   } | null>(null);
   const [canvasHeight, setCanvasHeight] = useState(600);
-  const [backgroundImage, setBackgroundImage] = useState<string>("/uploads/background.jpg");
+  const [backgroundImage, setBackgroundImage] = useState<string>(
+    "/uploads/background.jpg",
+  );
   const photosRef = useRef<Photo[]>(initialPhotos);
   const dragStartRef = useRef<{
     startX: number;
