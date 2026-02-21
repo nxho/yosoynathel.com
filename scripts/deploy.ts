@@ -23,7 +23,9 @@ const BUILD_PHOTOS = process.env.BUILD_PHOTOS !== "false";
 function run(cmd: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { cwd, stdio: "inherit", shell: true });
-    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`))));
+    p.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`)),
+    );
   });
 }
 
@@ -51,35 +53,94 @@ async function main() {
       console.error("Photos build output not found: apps/photos/.next");
       process.exit(1);
     }
+    await run(
+      "cp",
+      ["-r", "public", ".next/standalone/apps/photos/"],
+      join(ROOT, "apps/photos"),
+    );
+    await run(
+      "cp",
+      ["-r", ".next/static", ".next/standalone/apps/photos/.next"],
+      join(ROOT, "apps/photos"),
+    );
   }
 
   console.log("Syncing to remote...");
 
+  const colon = DEPLOY_TARGET.indexOf(":");
+  const sshTarget = DEPLOY_TARGET.slice(0, colon);
+  const remotePath = DEPLOY_TARGET.slice(colon + 1);
+  await run(
+    "ssh",
+    [sshTarget, `mkdir -p "${remotePath}" "${remotePath}/scripts"`],
+    ROOT,
+  );
+
+  const setupScript = join(ROOT, "scripts", "setup-server.sh");
+  if (existsSync(setupScript)) {
+    await run(
+      "rsync",
+      ["-av", setupScript, `${DEPLOY_TARGET}/scripts/setup-server.sh`],
+      ROOT,
+    );
+    console.log(
+      "Setup script synced to " + DEPLOY_TARGET + "/scripts/setup-server.sh",
+    );
+  }
+
+  const generateKeyScript = join(ROOT, "scripts", "generate-admin-key.ts");
+  if (existsSync(generateKeyScript)) {
+    await run(
+      "rsync",
+      [
+        "-av",
+        generateKeyScript,
+        `${DEPLOY_TARGET}/scripts/generate-admin-key.ts`,
+      ],
+      ROOT,
+    );
+    console.log(
+      "generate-admin-key synced to " +
+        DEPLOY_TARGET +
+        "/scripts/generate-admin-key.ts",
+    );
+  }
+
   if (BUILD_SITE) {
-    await run("rsync", [
-      "-av",
-      "--delete",
-      join(ROOT, "apps/site/_site") + "/",
-      `${DEPLOY_TARGET}/site/`,
-    ], ROOT);
+    await run(
+      "rsync",
+      [
+        "-av",
+        "--delete",
+        join(ROOT, "apps/site/_site") + "/",
+        `${DEPLOY_TARGET}/site/`,
+      ],
+      ROOT,
+    );
     console.log("Site synced to " + DEPLOY_TARGET + "/site/");
   }
 
   if (BUILD_PHOTOS) {
-    const photosDir = join(ROOT, "apps/photos");
-    await run("rsync", [
-      "-av",
-      "--delete",
-      "--exclude=node_modules",
-      "--exclude=.env",
-      "--exclude=.git",
-      photosDir + "/",
-      `${DEPLOY_TARGET}/photos/`,
-    ], ROOT);
+    const photosDir = join(ROOT, "apps/photos/.next/standalone");
+    await run(
+      "rsync",
+      [
+        "-av",
+        "--delete",
+        // "--exclude=node_modules",
+        "--exclude=.env",
+        "--exclude=.git",
+        photosDir + "/",
+        `${DEPLOY_TARGET}/photos/`,
+      ],
+      ROOT,
+    );
     console.log("Photos app synced to " + DEPLOY_TARGET + "/photos/");
   }
 
-  console.log("Done. On the server, run in photos dir: bun install --production && bun run start");
+  console.log(
+    "Done. On the server, run in photos dir: node app/photos/server.js",
+  );
 }
 
 main().catch((err) => {

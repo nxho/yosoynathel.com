@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.formData();
     const file: File | null = data.get("file") as unknown as File;
-    const isBackground = data.get("background") === "true" || data.get("purpose") === "background";
+    const isBackground =
+      data.get("background") === "true" || data.get("purpose") === "background";
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" });
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Detect type from magic bytes
     const hex = buffer.slice(0, 8).toString("hex");
     const detectedType = Object.entries(ALLOWED_SIGNATURES).find(([, sig]) =>
-      hex.startsWith(sig)
+      hex.startsWith(sig),
     );
 
     if (!detectedType) {
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
         process.cwd(),
         "public",
         "uploads",
-        "photos.json"
+        "photos.json",
       );
       let photos = [];
 
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
     console.error("Upload error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to upload file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

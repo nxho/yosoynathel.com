@@ -14,6 +14,7 @@
     "build:photos": "cd apps/photos && bun run build",
     "sync": "cd apps/site && bun run sync",
     "generate:admin-key": "bun run scripts/generate-admin-key.ts",
-    "deploy": "bun run scripts/deploy.ts"
+    "deploy": "bun run scripts/deploy.ts",
+    "setup:server": "echo 'Run setup-server.sh on the server (see scripts/setup-server.sh)'"
   }
 }

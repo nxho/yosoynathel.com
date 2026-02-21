@@ -5,7 +5,12 @@ import { existsSync } from "fs";
 import { validateAdminKey } from "@/lib/auth";
 
 // Single static asset: always overwrite this file
-const BACKGROUND_PATH = join(process.cwd(), "public", "uploads", "background.jpg");
+const BACKGROUND_PATH = join(
+  process.cwd(),
+  "public",
+  "uploads",
+  "background.jpg",
+);
 
 // POST - Upload a new background image (overwrites the static file)
 export async function POST(request: NextRequest) {
@@ -17,11 +22,17 @@ export async function POST(request: NextRequest) {
     const file: File | null = data.get("file") as unknown as File;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "No file uploaded" },
+        { status: 400 },
+      );
     }
 
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ success: false, error: "File must be an image" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "File must be an image" },
+        { status: 400 },
+      );
     }
 
     const uploadsDir = join(process.cwd(), "public", "uploads");

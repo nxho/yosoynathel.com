@@ -1,12 +1,17 @@
 /**
- * Generates a new PHOTOS_ADMIN_SECRET and writes it to apps/photos/.env
+ * Generates a new PHOTOS_ADMIN_SECRET and writes it to .env.
  * Run from repo root: bun run scripts/generate-admin-key.ts
+ * On server (deploy root): bun run scripts/generate-admin-key.ts
  */
 
 import { writeFile, readFile } from "fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "path";
 
-const ENV_PATH = join(process.cwd(), "apps", "photos", ".env");
+const base = process.cwd();
+const ENV_PATH = existsSync(join(base, "photos"))
+  ? join(base, "photos", ".env")
+  : join(base, "apps", "photos", ".env");
 const VAR_NAME = "PHOTOS_ADMIN_SECRET";
 
 function generateKey(): string {

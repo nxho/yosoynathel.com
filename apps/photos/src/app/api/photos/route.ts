@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     console.error("Error saving photo:", error);
     return NextResponse.json(
       { success: false, error: "Failed to save photo" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -95,7 +95,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating photo:", error);
     return NextResponse.json(
       { success: false, error: "Failed to update photo" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting photo:", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete photo" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
