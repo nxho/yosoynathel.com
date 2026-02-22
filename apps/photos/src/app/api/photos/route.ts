@@ -3,7 +3,12 @@ import { writeFile, readFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { validateAdminKey } from "@/lib/auth";
-import { UPLOADS_DIR, PHOTOS_JSON_PATH, photoUrl, srcToFilename } from "@/lib/uploads";
+import {
+  UPLOADS_DIR,
+  PHOTOS_JSON_PATH,
+  photoUrl,
+  srcToFilename,
+} from "@/lib/uploads";
 
 // GET - Load all photos
 export async function GET() {

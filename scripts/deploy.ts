@@ -54,13 +54,27 @@ async function main() {
       process.exit(1);
     }
     await run(
+      "mv",
+      [
+        ".next/standalone/apps/photos/*",
+        ".next/standalone/apps/photos/.next",
+        ".next/standalone",
+      ],
+      join(ROOT, "apps/photos"),
+    );
+    await run(
+      "rm",
+      ["-rf", "apps"],
+      join(ROOT, "apps/photos/.next/standalone"),
+    );
+    await run(
       "cp",
-      ["-r", "public", ".next/standalone/apps/photos/"],
+      ["-r", "public", ".next/standalone"],
       join(ROOT, "apps/photos"),
     );
     await run(
       "cp",
-      ["-r", ".next/static", ".next/standalone/apps/photos/.next"],
+      ["-r", ".next/static", ".next/standalone/.next"],
       join(ROOT, "apps/photos"),
     );
   }
