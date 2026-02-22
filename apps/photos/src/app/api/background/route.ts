@@ -3,14 +3,10 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { validateAdminKey } from "@/lib/auth";
+import { UPLOADS_DIR, photoUrl } from "@/lib/uploads";
 
-// Single static asset: always overwrite this file
-const BACKGROUND_PATH = join(
-  process.cwd(),
-  "public",
-  "uploads",
-  "background.jpg",
-);
+const BACKGROUND_FILENAME = "background.jpg";
+const BACKGROUND_PATH = join(UPLOADS_DIR, BACKGROUND_FILENAME);
 
 // POST - Upload a new background image (overwrites the static file)
 export async function POST(request: NextRequest) {
@@ -35,15 +31,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    if (!existsSync(UPLOADS_DIR)) {
+      await mkdir(UPLOADS_DIR, { recursive: true });
     }
 
     const bytes = await file.arrayBuffer();
     await writeFile(BACKGROUND_PATH, Buffer.from(bytes));
 
-    return NextResponse.json({ success: true, url: "/uploads/background.jpg" });
+    return NextResponse.json({ success: true, url: photoUrl(BACKGROUND_FILENAME) });
   } catch (error) {
     console.error("Error saving background:", error);
     return NextResponse.json(

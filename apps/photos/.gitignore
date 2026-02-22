@@ -42,3 +42,6 @@ next-env.d.ts
 
 # public
 /public/uploads
+
+# uploads (stored outside public, served via /api/photo)
+/uploads

@@ -3,6 +3,7 @@ import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { validateAdminKey } from "@/lib/auth";
+import { UPLOADS_DIR, PHOTOS_JSON_PATH, photoUrl } from "@/lib/uploads";
 
 export async function POST(request: NextRequest) {
   if (!validateAdminKey(request)) {
@@ -50,19 +51,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    if (!existsSync(UPLOADS_DIR)) {
+      await mkdir(UPLOADS_DIR, { recursive: true });
     }
 
-    // Generate unique filename using server-detected extension (not client-supplied)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const extension = detectedType[0] === "jpeg" ? "jpg" : detectedType[0];
     const filename = `${timestamp}-${randomString}.${extension}`;
 
-    const filepath = join(uploadsDir, filename);
+    const filepath = join(UPLOADS_DIR, filename);
 
     // Write file to disk
     await writeFile(filepath, buffer);
@@ -71,11 +69,10 @@ export async function POST(request: NextRequest) {
     let width = 80;
     let height = 80;
 
-    // Save photo metadata
     const photoId = Date.now().toString();
     const photoData = {
       id: photoId,
-      src: `/uploads/${filename}`,
+      src: photoUrl(filename),
       x: Math.random() * 200 + 100, // Default position
       y: Math.random() * 150 + 100,
       rotation: Math.random() * 20 - 10,
@@ -86,31 +83,21 @@ export async function POST(request: NextRequest) {
       height,
     };
 
-    // Only add to photos list when not uploading as background
     if (!isBackground) {
-      const metadataPath = join(
-        process.cwd(),
-        "public",
-        "uploads",
-        "photos.json",
-      );
-      let photos = [];
-
+      let photos: unknown[] = [];
       try {
-        if (existsSync(metadataPath)) {
-          const existingData = await readFile(metadataPath, "utf-8");
+        if (existsSync(PHOTOS_JSON_PATH)) {
+          const existingData = await readFile(PHOTOS_JSON_PATH, "utf-8");
           photos = JSON.parse(existingData);
         }
       } catch (error) {
         console.error("Error reading photos metadata:", error);
       }
-
       photos.push(photoData);
-      await writeFile(metadataPath, JSON.stringify(photos, null, 2));
+      await writeFile(PHOTOS_JSON_PATH, JSON.stringify(photos, null, 2));
     }
 
-    // Return the public URL
-    const url = `/uploads/${filename}`;
+    const url = photoUrl(filename);
 
     return NextResponse.json({
       success: true,

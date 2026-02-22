@@ -3,20 +3,25 @@ import { writeFile, readFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { validateAdminKey } from "@/lib/auth";
-
-const PHOTOS_FILE = join(process.cwd(), "public", "uploads", "photos.json");
+import { UPLOADS_DIR, PHOTOS_JSON_PATH, photoUrl, srcToFilename } from "@/lib/uploads";
 
 // GET - Load all photos
 export async function GET() {
   try {
-    if (!existsSync(PHOTOS_FILE)) {
+    if (!existsSync(PHOTOS_JSON_PATH)) {
       return NextResponse.json({ photos: [] });
     }
 
-    const data = await readFile(PHOTOS_FILE, "utf-8");
-    const photos = JSON.parse(data);
+    const data = await readFile(PHOTOS_JSON_PATH, "utf-8");
+    const photos: any[] = JSON.parse(data);
+    // Normalize legacy /uploads/xxx to /api/photo/xxx
+    const normalized = photos.map((p: any) => {
+      const filename = srcToFilename(p.src);
+      if (filename) return { ...p, src: photoUrl(filename) };
+      return p;
+    });
 
-    return NextResponse.json({ photos });
+    return NextResponse.json({ photos: normalized });
   } catch (error) {
     console.error("Error loading photos:", error);
     return NextResponse.json({ photos: [] });
@@ -31,28 +36,22 @@ export async function POST(request: NextRequest) {
   try {
     const photoData = await request.json();
 
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    if (!existsSync(UPLOADS_DIR)) {
+      await mkdir(UPLOADS_DIR, { recursive: true });
     }
 
-    // Load existing photos
-    let photos = [];
-    if (existsSync(PHOTOS_FILE)) {
+    let photos: unknown[] = [];
+    if (existsSync(PHOTOS_JSON_PATH)) {
       try {
-        const data = await readFile(PHOTOS_FILE, "utf-8");
+        const data = await readFile(PHOTOS_JSON_PATH, "utf-8");
         photos = JSON.parse(data);
       } catch (error) {
         console.error("Error reading existing photos:", error);
       }
     }
 
-    // Add new photo
     photos.push(photoData);
-
-    // Save updated photos
-    await writeFile(PHOTOS_FILE, JSON.stringify(photos, null, 2));
+    await writeFile(PHOTOS_JSON_PATH, JSON.stringify(photos, null, 2));
 
     return NextResponse.json({ success: true, photo: photoData });
   } catch (error) {
@@ -72,11 +71,11 @@ export async function PUT(request: NextRequest) {
   try {
     const { photoId, x, y, rotation } = await request.json();
 
-    if (!existsSync(PHOTOS_FILE)) {
+    if (!existsSync(PHOTOS_JSON_PATH)) {
       return NextResponse.json({ success: false, error: "No photos found" });
     }
 
-    const data = await readFile(PHOTOS_FILE, "utf-8");
+    const data = await readFile(PHOTOS_JSON_PATH, "utf-8");
     const photos = JSON.parse(data);
 
     // Find and update the photo
@@ -87,8 +86,7 @@ export async function PUT(request: NextRequest) {
 
     photos[photoIndex] = { ...photos[photoIndex], x, y, rotation };
 
-    // Save updated photos
-    await writeFile(PHOTOS_FILE, JSON.stringify(photos, null, 2));
+    await writeFile(PHOTOS_JSON_PATH, JSON.stringify(photos, null, 2));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -108,11 +106,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const { photoId } = await request.json();
 
-    if (!existsSync(PHOTOS_FILE)) {
+    if (!existsSync(PHOTOS_JSON_PATH)) {
       return NextResponse.json({ success: false, error: "No photos found" });
     }
 
-    const data = await readFile(PHOTOS_FILE, "utf-8");
+    const data = await readFile(PHOTOS_JSON_PATH, "utf-8");
     const photos: any[] = JSON.parse(data);
 
     const photoIndex = photos.findIndex((p: any) => p.id === photoId);
@@ -122,15 +120,12 @@ export async function DELETE(request: NextRequest) {
 
     const deleted = photos[photoIndex];
     photos.splice(photoIndex, 1);
-    await writeFile(PHOTOS_FILE, JSON.stringify(photos, null, 2));
+    await writeFile(PHOTOS_JSON_PATH, JSON.stringify(photos, null, 2));
 
-    // Remove image file from disk if it's a local upload (e.g. /uploads/xxx)
-    const src = deleted?.src;
-    if (typeof src === "string") {
-      const uploadsDir = join(process.cwd(), "public", "uploads");
-      const filePath = join(uploadsDir, src.replace(/^\/uploads\//, ""));
-      // Ensure the resolved path is inside the uploads directory
-      if (filePath.startsWith(uploadsDir + "/") && existsSync(filePath)) {
+    const filename = srcToFilename(deleted?.src);
+    if (filename) {
+      const filePath = join(UPLOADS_DIR, filename);
+      if (filePath.startsWith(UPLOADS_DIR) && existsSync(filePath)) {
         try {
           await unlink(filePath);
         } catch (e) {

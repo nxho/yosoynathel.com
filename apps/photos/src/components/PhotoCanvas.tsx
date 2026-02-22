@@ -70,7 +70,7 @@ export function PhotoCanvas() {
   } | null>(null);
   const [canvasHeight, setCanvasHeight] = useState(600);
   const [backgroundImage, setBackgroundImage] = useState<string>(
-    "/uploads/background.jpg",
+    "/api/photo/background.jpg",
   );
   const photosRef = useRef<Photo[]>(initialPhotos);
   const dragStartRef = useRef<{
@@ -120,7 +120,7 @@ export function PhotoCanvas() {
       .finally(() => setAuthChecked(true));
   }, []);
 
-  // Load photos on mount (background is static asset at /uploads/background.jpg)
+  // Load photos on mount (background served via /api/photo/background.jpg)
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -375,7 +375,7 @@ export function PhotoCanvas() {
 
       if (!response.ok) throw new Error("Failed to save background");
 
-      setBackgroundImage(`/uploads/background.jpg?t=${Date.now()}`);
+      setBackgroundImage(`/api/photo/background.jpg?t=${Date.now()}`);
     } catch (error) {
       console.error("Background upload failed:", error);
     } finally {
