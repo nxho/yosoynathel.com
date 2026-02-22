@@ -77,9 +77,7 @@ if [[ "$SKIP_NGINX" != "1" ]]; then
 
   NGINX_SITE="yosoynathel.com"
   NGINX_CONF="/etc/nginx/sites-available/$NGINX_SITE"
-  if [[ -d /etc/nginx/sites-available ]]; then
-    # Debian/Ubuntu
-    sudo tee "$NGINX_CONF" >/dev/null <<EOF
+  sudo tee "$NGINX_CONF" >/dev/null <<EOF
 # Static site (Eleventy) at root; Next.js photos app at /photos, /_next, /api, /uploads
 server {
     listen 80;
@@ -91,7 +89,7 @@ server {
     }
 
     # Strip /photos prefix so Next app sees path as /
-    location /photos {
+    location /photos/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -101,7 +99,7 @@ server {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
-    location /_next {
+    location /_next/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -109,7 +107,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-    location /api {
+    location /api/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -117,59 +115,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-    location /uploads {
-        proxy_pass http://127.0.0.1:$NEXT_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF
-    sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/"$NGINX_SITE" 2>/dev/null || true
-  else
-    # RHEL-style: conf.d
-    NGINX_CONF="/etc/nginx/conf.d/yosoynathel.conf"
-    sudo tee "$NGINX_CONF" >/dev/null <<EOF
-# Static site (Eleventy) at root; Next.js photos app at /photos, /_next, /api, /uploads
-server {
-    listen 80;
-    server_name $DOMAIN www.$DOMAIN;
-    root $DEPLOY_PATH/site;
-    index index.html;
-    location / {
-        try_files \$uri \$uri/ \$uri.html =404;
-    }
-
-    # Strip /photos prefix so Next app sees path as /
-    location /photos {
-        proxy_pass http://127.0.0.1:$NEXT_PORT/;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-    location /_next {
-        proxy_pass http://127.0.0.1:$NEXT_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-    location /api {
-        proxy_pass http://127.0.0.1:$NEXT_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-    location /uploads {
+    location /uploads/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -179,7 +125,8 @@ server {
     }
 }
 EOF
-  fi
+  sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/"$NGINX_SITE" 2>/dev/null || true
+  sudo rm -f /etc/nginx/sites-enabled/default
 
   echo "Testing nginx config..."
   sudo nginx -t
