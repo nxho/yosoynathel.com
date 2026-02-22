@@ -90,33 +90,27 @@ async function main() {
     ROOT,
   );
 
-  const setupScript = join(ROOT, "scripts", "setup-server.sh");
-  if (existsSync(setupScript)) {
-    await run(
-      "rsync",
-      ["-av", setupScript, `${DEPLOY_TARGET}/scripts/setup-server.sh`],
-      ROOT,
-    );
-    console.log(
-      "Setup script synced to " + DEPLOY_TARGET + "/scripts/setup-server.sh",
-    );
-  }
-
-  const generateKeyScript = join(ROOT, "scripts", "generate-admin-key.ts");
-  if (existsSync(generateKeyScript)) {
+  const scriptNames = [
+    "setup-server.sh",
+    "generate-admin-key.ts",
+    "enable-service.sh",
+    "restart-service.sh",
+  ];
+  const scriptsToSync = scriptNames
+    .map((name) => ({ name, path: join(ROOT, "scripts", name) }))
+    .filter(({ path }) => existsSync(path));
+  if (scriptsToSync.length > 0) {
     await run(
       "rsync",
       [
         "-av",
-        generateKeyScript,
-        `${DEPLOY_TARGET}/scripts/generate-admin-key.ts`,
+        ...scriptsToSync.map((s) => s.path),
+        `${DEPLOY_TARGET}/scripts/`,
       ],
       ROOT,
     );
     console.log(
-      "generate-admin-key synced to " +
-        DEPLOY_TARGET +
-        "/scripts/generate-admin-key.ts",
+      "Scripts synced: " + scriptsToSync.map((s) => s.name).join(", "),
     );
   }
 
