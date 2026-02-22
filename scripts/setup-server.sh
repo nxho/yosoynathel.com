@@ -13,7 +13,7 @@
 #   DOMAIN        server_name for nginx (default: _)
 #   NEXT_PORT     Port for Next app (default: 3001)
 #   SKIP_NGINX    Set to 1 to skip nginx install/config
-#   SKIP_BUN      Set to 1 to skip bun install
+#   SKIP_NODE      Set to 1 to skip bun install
 #
 set -euo pipefail
 
@@ -21,7 +21,7 @@ DEPLOY_PATH="${DEPLOY_PATH:-/var/www/yosoynathel.com}"
 DOMAIN="${DOMAIN:-yosoynathel.com}"
 NEXT_PORT="${NEXT_PORT:-3001}"
 SKIP_NGINX="${SKIP_NGINX:-0}"
-SKIP_BUN="${SKIP_BUN:-0}"
+SKIP_NODE="${SKIP_NODE:-0}"
 
 # --- Directories ---
 echo "Creating directories under $DEPLOY_PATH..."
@@ -36,17 +36,25 @@ else
   sudo apt install -y unzip
 fi
 
-# --- Bun (for running Next.js photos app) ---
-if [[ "$SKIP_BUN" != "1" ]]; then
-  if command -v bun &>/dev/null; then
-    echo "Bun already installed: $(bun --version)"
+# --- Node.js (for running Next.js photos app) ---
+if [[ "$SKIP_NODE" != "1" ]]; then
+  if command -v node &>/dev/null; then
+    echo "Node.js already installed: $(node --version)"
   else
-    echo "Installing bun..."
-    curl -fsSL https://bun.sh/install | bash
-    export BUN_INSTALL="$HOME/.bun"
-    export PATH="$BUN_INSTALL/bin:$PATH"
-    # If we're in a script, shell might not have bun in PATH next time; suggest adding it
-    echo "Add to your shell profile: export BUN_INSTALL=\"\$HOME/.bun\" and export PATH=\"\$BUN_INSTALL/bin:\$PATH\""
+    echo "Installing Node.js..."
+    if command -v apt-get &>/dev/null; then
+      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+    elif command -v dnf &>/dev/null; then
+      curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+      sudo dnf install -y nodejs
+    elif command -v yum &>/dev/null; then
+      curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+      sudo yum install -y nodejs
+    else
+      echo "Could not detect package manager (apt-get, dnf, yum). Install Node.js manually and re-run with SKIP_NODE=1."
+      exit 1
+    fi
   fi
 fi
 
@@ -222,7 +230,8 @@ if command -v apt-get &>/dev/null; then
 fi
 
 sudo ufw enable
-sudo ufw allow 'Nginx Full'
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx HTTPS'
 sudo ufw status
 sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN
 
