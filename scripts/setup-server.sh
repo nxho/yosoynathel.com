@@ -202,7 +202,7 @@ Type=simple
 WorkingDirectory=$DEPLOY_PATH/photos
 Environment=PORT=$NEXT_PORT
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node apps/photos/server.js
+ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=5
 
@@ -231,7 +231,7 @@ fi
 
 sudo ufw enable
 sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx HTTPS'
+sudo ufw allow 'Nginx Full'
 sudo ufw status
 sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN
 
