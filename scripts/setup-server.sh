@@ -127,7 +127,7 @@ EOF
 # Static site (Eleventy) at root; Next.js photos app at /photos, /_next, /api, /uploads
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name $DOMAIN www.$DOMAIN;
     root $DEPLOY_PATH/site;
     index index.html;
     location / {
@@ -209,6 +209,22 @@ if command -v bun &>/dev/null; then
     sed -i.bak "s|$HOME/.bun/bin/bun|$BUN_PATH|g" "$PHOTOS_SERVICE"
   fi
 fi
+
+# --- Certbot (HTTPS via Let's Encrypt) ---
+if command -v apt-get &>/dev/null; then
+  if ! command -v certbot &>/dev/null; then
+    echo "Installing certbot and python3-certbot-nginx..."
+    sudo apt-get update -qq
+    sudo apt-get install -y certbot python3-certbot-nginx
+  else
+    echo "Certbot already installed: $(certbot --version)"
+  fi
+fi
+
+sudo ufw enable
+sudo ufw allow 'Nginx Full'
+sudo ufw status
+sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN
 
 echo ""
 echo "Setup complete."
