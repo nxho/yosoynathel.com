@@ -18,7 +18,7 @@
 set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/var/www/yosoynathel.com}"
-DOMAIN="${DOMAIN:-_}"
+DOMAIN="${DOMAIN:-yosoynathel.com}"
 NEXT_PORT="${NEXT_PORT:-3001}"
 SKIP_NGINX="${SKIP_NGINX:-0}"
 SKIP_BUN="${SKIP_BUN:-0}"
@@ -75,7 +75,7 @@ if [[ "$SKIP_NGINX" != "1" ]]; then
 # Static site (Eleventy) at root; Next.js photos app at /photos, /_next, /api, /uploads
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name $DOMAIN www.$DOMAIN;
     root $DEPLOY_PATH/site;
     index index.html;
     location / {
