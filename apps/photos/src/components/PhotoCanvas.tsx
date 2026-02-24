@@ -767,16 +767,13 @@ export function PhotoCanvas() {
               })()}
             <div
               className={`absolute left-0 top-0 select-none transition-transform ${
-                isAdmin
-                  ? draggedPhoto === photo.id
-                    ? "cursor-grabbing"
-                    : "cursor-grab"
-                  : "cursor-default"
+                isAdmin ? "cursor-move" : "cursor-default"
               } ${draggedPhoto === photo.id ? "z-10" : "z-0"} ${
                 isResizing || isRotating ? "invisible" : ""
               }`}
               style={{ transform: `rotate(${photo.rotation}deg)` }}
               onMouseDown={(e) => handleMouseDown(e, photo.id)}
+              onDragStart={(e) => e.preventDefault()}
               onContextMenu={(e) => {
                 if (!isAdmin) return;
                 e.preventDefault();
@@ -798,6 +795,7 @@ export function PhotoCanvas() {
                 <ImageWithFallback
                   src={photo.src}
                   alt="Memory"
+                  draggable={false}
                   className="object-contain"
                   style={{
                     maxWidth: `${photoSize}px`,
