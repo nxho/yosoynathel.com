@@ -84,6 +84,7 @@ export function PhotoCanvas() {
     y: number;
   } | null>(null);
   const [canvasHeight, setCanvasHeight] = useState(600);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string>(
     "/api/photo/background.jpg",
   );
@@ -122,6 +123,15 @@ export function PhotoCanvas() {
     const newHeight = calculateRequiredHeight(photos);
     setCanvasHeight(newHeight);
   }, [photos, calculateRequiredHeight]);
+
+  // Detect mobile viewport so we constrain height and avoid double scroll
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    const handler = () => setIsMobileViewport(mql.matches);
+    handler();
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
 
   // Cursor grabbing while dragging or rotating (cursor stays correct when pointer leaves photo)
   useEffect(() => {
@@ -570,7 +580,9 @@ export function PhotoCanvas() {
       }`}
       style={{
         minHeight: "100vh",
-        height: `max(100vh, ${canvasHeight}px)`,
+        height: isMobileViewport
+          ? "100dvh"
+          : `max(100vh, ${canvasHeight}px)`,
         backgroundImage: `url("${backgroundImage}")`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -712,8 +724,8 @@ export function PhotoCanvas() {
           document.body,
         )}
 
-      {/* Mobile: scrollable list, one photo per screen, rotation kept */}
-      <div className="flex flex-col overflow-y-auto md:hidden h-full relative z-10">
+      {/* Mobile: single scroll container (root is 100dvh so no body scroll) */}
+      <div className="flex flex-col overflow-y-auto overflow-x-hidden md:hidden h-full min-h-0 relative z-10">
         {photos.map((photo) => (
             <section
               key={photo.id}
