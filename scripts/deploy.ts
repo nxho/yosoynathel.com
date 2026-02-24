@@ -143,9 +143,12 @@ async function main() {
     console.log("Photos app synced to " + DEPLOY_TARGET + "/photos/");
   }
 
-  console.log(
-    "Done. On the server, run in photos dir: node app/photos/server.js",
+  await run(
+    "ssh",
+    [sshTarget, `/${remotePath}/scripts/restart-service.sh`],
+    ROOT,
   );
+  console.log("Photos service restarted on remote server.");
 }
 
 main().catch((err) => {

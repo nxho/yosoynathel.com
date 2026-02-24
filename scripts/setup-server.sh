@@ -14,6 +14,7 @@
 #   NEXT_PORT     Port for Next app (default: 3001)
 #   SKIP_NGINX    Set to 1 to skip nginx install/config
 #   SKIP_BUN      Set to 1 to skip bun install
+#   SKIP_CERTBOT  Set to 1 to skip certbot install and HTTPS certificate generation
 #
 set -euo pipefail
 
@@ -22,6 +23,7 @@ DOMAIN="${DOMAIN:-yosoynathel.com}"
 NEXT_PORT="${NEXT_PORT:-3001}"
 SKIP_NGINX="${SKIP_NGINX:-0}"
 SKIP_BUN="${SKIP_BUN:-0}"
+SKIP_CERTBOT="${SKIP_CERTBOT:-0}"
 
 # --- Directories ---
 echo "Creating directories under $DEPLOY_PATH..."
@@ -149,22 +151,25 @@ RestartSec=5
 WantedBy=default.target
 EOF
 
-# --- Certbot (HTTPS via Let's Encrypt) ---
-if command -v apt-get &>/dev/null; then
-  if ! command -v certbot &>/dev/null; then
-    echo "Installing certbot and python3-certbot-nginx..."
-    sudo apt-get update -qq
-    sudo apt-get install -y certbot python3-certbot-nginx
-  else
-    echo "Certbot already installed: $(certbot --version)"
-  fi
-fi
-
+# --- Firewall ---
 sudo ufw enable
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'
 sudo ufw status
-sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN
+
+# --- Certbot (HTTPS via Let's Encrypt) ---
+if [[ "$SKIP_CERTBOT" != "1" ]]; then
+  if command -v apt-get &>/dev/null; then
+    if ! command -v certbot &>/dev/null; then
+      echo "Installing certbot and python3-certbot-nginx..."
+      sudo apt-get update -qq
+      sudo apt-get install -y certbot python3-certbot-nginx
+    else
+      echo "Certbot already installed: $(certbot --version)"
+    fi
+  fi
+  sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN
+fi
 
 echo ""
 echo "Setup complete."
@@ -173,12 +178,4 @@ echo "  Deploy path:  $DEPLOY_PATH"
 echo "  site/        Eleventy static files (deploy script rsyncs here)"
 echo "  photos/      Next.js app (deploy script rsyncs here)"
 echo ""
-echo "Next steps:"
-echo "  1. Deploy from your machine: DEPLOY_TARGET=user@this-server:$DEPLOY_PATH bun run deploy"
-echo "  2. On this server, create $DEPLOY_PATH/photos/.env with PHOTOS_ADMIN_SECRET and any other env."
-echo "  3. In $DEPLOY_PATH/photos run: bun install --production && bun run start"
-echo "     Or enable the user systemd service and start it:"
-echo "     systemctl --user daemon-reload"
-echo "     systemctl --user enable --now yosoynathel-photos"
-echo "  4. Ensure DEPLOY_PATH matches in this script and in DEPLOY_TARGET when you run deploy."
 echo ""
