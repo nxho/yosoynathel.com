@@ -767,7 +767,11 @@ export function PhotoCanvas() {
               })()}
             <div
               className={`absolute left-0 top-0 select-none transition-transform ${
-                isAdmin ? "cursor-move" : "cursor-default"
+                isAdmin
+                  ? draggedPhoto === photo.id
+                    ? "cursor-grabbing"
+                    : "cursor-grab"
+                  : "cursor-default"
               } ${draggedPhoto === photo.id ? "z-10" : "z-0"} ${
                 isResizing || isRotating ? "invisible" : ""
               }`}
