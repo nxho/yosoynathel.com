@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const { photoId, x, y, rotation } = await request.json();
+    const { photoId, x, y, rotation, size } = await request.json();
 
     if (!existsSync(PHOTOS_JSON_PATH)) {
       return NextResponse.json({ success: false, error: "No photos found" });
@@ -89,7 +89,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Photo not found" });
     }
 
-    photos[photoIndex] = { ...photos[photoIndex], x, y, rotation };
+    const update: Record<string, unknown> = { x, y, rotation };
+    if (typeof size === "number") update.size = size;
+    photos[photoIndex] = { ...photos[photoIndex], ...update };
 
     await writeFile(PHOTOS_JSON_PATH, JSON.stringify(photos, null, 2));
 

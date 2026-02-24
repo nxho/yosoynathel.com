@@ -19,6 +19,31 @@ function getAdminHeaders(): Record<string, string> {
   return { [ADMIN_KEY_HEADER]: key };
 }
 
+const DEFAULT_PHOTO_SIZE = 140;
+const MIN_PHOTO_SIZE = 60;
+const PHOTO_PADDING = 6;
+
+/** Given max dimension and aspect ratio (width/height), return display width and height in px */
+function sizeToDimensions(
+  maxSize: number,
+  aspectRatio: number,
+): { width: number; height: number } {
+  if (aspectRatio >= 1)
+    return { width: maxSize, height: maxSize / aspectRatio };
+  return { width: maxSize * aspectRatio, height: maxSize };
+}
+
+function getPhotoAspectRatio(photo: Photo): number {
+  if (typeof photo.aspectRatio === "number") return photo.aspectRatio;
+  if (
+    typeof photo.width === "number" &&
+    typeof photo.height === "number" &&
+    photo.height > 0
+  )
+    return photo.width / photo.height;
+  return 1;
+}
+
 interface Photo {
   id: string;
   src: string;
@@ -28,6 +53,8 @@ interface Photo {
   filename?: string;
   uploadedAt?: string;
   size?: number;
+  aspectRatio?: number;
+  scale?: number;
   width?: number;
   height?: number;
 }
@@ -59,6 +86,17 @@ const initialPhotos: Photo[] = [
 export function PhotoCanvas() {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [draggedPhoto, setDraggedPhoto] = useState<string | null>(null);
+  const [resizingPhoto, setResizingPhoto] = useState<{
+    photoId: string;
+    previewSize: number;
+  } | null>(null);
+  const [rotatingPhoto, setRotatingPhoto] = useState<string | null>(null);
+  const [hoverRotateCorner, setHoverRotateCorner] = useState<string | null>(
+    null,
+  );
+  const [hoverResizeCorner, setHoverResizeCorner] = useState<string | null>(
+    null,
+  );
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -79,19 +117,27 @@ export function PhotoCanvas() {
     startPhotoX: number;
     startPhotoY: number;
   } | null>(null);
+  const resizeStartRef = useRef<{ startX: number; startSize: number } | null>(
+    null,
+  );
+  const resizePreviewSizeRef = useRef<number>(DEFAULT_PHOTO_SIZE);
 
   // Keep the ref in sync with the state
   photosRef.current = photos;
 
   // Calculate required canvas height based on photo positions
   const calculateRequiredHeight = useCallback((photoList: Photo[]) => {
-    if (photoList.length === 0) return 600; // Default height
+    if (photoList.length === 0) return 600;
 
-    const photoHeight = 150; // Approximate photo height including borders
-    const maxY = Math.max(...photoList.map((photo) => photo.y + photoHeight));
-    const requiredHeight = Math.max(600, maxY + 50); // Add 50px padding
-
-    return requiredHeight;
+    const maxY = Math.max(
+      ...photoList.map((p) => {
+        const h =
+          (typeof p.size === "number" ? p.size : DEFAULT_PHOTO_SIZE) +
+          PHOTO_PADDING * 2;
+        return p.y + h;
+      }),
+    );
+    return Math.max(600, maxY + 50);
   }, []);
 
   // Update canvas height when photos change
@@ -99,6 +145,16 @@ export function PhotoCanvas() {
     const newHeight = calculateRequiredHeight(photos);
     setCanvasHeight(newHeight);
   }, [photos, calculateRequiredHeight]);
+
+  // Cursor grabbing while dragging or rotating (cursor stays correct when pointer leaves photo)
+  useEffect(() => {
+    if (!draggedPhoto) return;
+    const prev = document.body.style.cursor;
+    document.body.style.cursor = "grabbing";
+    return () => {
+      document.body.style.cursor = prev;
+    };
+  }, [draggedPhoto]);
 
   // Validate stored admin key on mount
   useEffect(() => {
@@ -253,6 +309,9 @@ export function PhotoCanvas() {
                 x: finalPhoto.x,
                 y: finalPhoto.y,
                 rotation: finalPhoto.rotation,
+                ...(typeof finalPhoto.size === "number" && {
+                  size: finalPhoto.size,
+                }),
               }),
             });
           } catch (error) {
@@ -267,7 +326,142 @@ export function PhotoCanvas() {
     [isAdmin],
   );
 
-  // Drag and drop handlers
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent, photoId: string) => {
+      if (!isAdmin) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const photo = photosRef.current.find((p) => p.id === photoId);
+      if (!photo) return;
+      const startSize =
+        typeof photo.size === "number" ? photo.size : DEFAULT_PHOTO_SIZE;
+      resizePreviewSizeRef.current = startSize;
+      setResizingPhoto({ photoId, previewSize: startSize });
+      resizeStartRef.current = { startX: e.clientX, startSize };
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const start = resizeStartRef.current;
+        if (!start) return;
+        const deltaX = e.clientX - start.startX;
+        const newSize = Math.max(MIN_PHOTO_SIZE, start.startSize + deltaX);
+        resizePreviewSizeRef.current = newSize;
+        const ar = getPhotoAspectRatio(photo);
+        const { width: w, height: h } = sizeToDimensions(newSize, ar);
+        console.log("[resize] preview dimensions:", {
+          width: w,
+          height: h,
+          maxSize: newSize,
+        });
+        setResizingPhoto((prev) =>
+          prev ? { ...prev, previewSize: newSize } : null,
+        );
+      };
+
+      const handleMouseUp = async () => {
+        const finalSize = resizePreviewSizeRef.current;
+        setResizingPhoto(null);
+        resizeStartRef.current = null;
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+
+        setPhotos((prev) =>
+          prev.map((p) => (p.id === photoId ? { ...p, size: finalSize } : p)),
+        );
+        try {
+          const current = photosRef.current.find((p) => p.id === photoId);
+          if (current) {
+            await fetch("/api/photos", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAdminHeaders(),
+              },
+              body: JSON.stringify({
+                photoId: current.id,
+                x: current.x,
+                y: current.y,
+                rotation: current.rotation,
+                size: finalSize,
+              }),
+            });
+          }
+        } catch (err) {
+          console.error("Failed to save photo size:", err);
+        }
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [isAdmin],
+  );
+
+  const handleRotateMouseDown = useCallback(
+    (e: React.MouseEvent, photoId: string) => {
+      if (!isAdmin) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setRotatingPhoto(photoId);
+
+      const getCenterAndBox = (p: Photo) => {
+        const photoSize =
+          typeof p.size === "number" ? p.size : DEFAULT_PHOTO_SIZE;
+        const ar = getPhotoAspectRatio(p);
+        const { width: w, height: h } = sizeToDimensions(photoSize, ar);
+        const boxW = w + PHOTO_PADDING * 2;
+        const boxH = h + PHOTO_PADDING * 2;
+        const cx = p.x + boxW / 2;
+        const cy = p.y + boxH / 2;
+        return { boxW, boxH, cx, cy };
+      };
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const photo = photosRef.current.find((p) => p.id === photoId);
+        if (!photo) return;
+        const { boxW, boxH, cx, cy } = getCenterAndBox(photo);
+        const cursorAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+        const cornerAngle = Math.atan2(-boxH / 2, boxW / 2);
+        const newRotationDeg = ((cursorAngle - cornerAngle) * 180) / Math.PI;
+        setPhotos((prev) =>
+          prev.map((p) =>
+            p.id === photoId ? { ...p, rotation: newRotationDeg } : p,
+          ),
+        );
+      };
+
+      const handleMouseUp = async () => {
+        setRotatingPhoto(null);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        const current = photosRef.current.find((p) => p.id === photoId);
+        if (current) {
+          try {
+            await fetch("/api/photos", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAdminHeaders(),
+              },
+              body: JSON.stringify({
+                photoId: current.id,
+                x: current.x,
+                y: current.y,
+                rotation: current.rotation,
+                ...(typeof current.size === "number" && { size: current.size }),
+              }),
+            });
+          } catch (err) {
+            console.error("Failed to save photo rotation:", err);
+          }
+        }
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [isAdmin],
+  );
+
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -522,47 +716,160 @@ export function PhotoCanvas() {
           document.body,
         )}
 
-      {photos.map((photo) => (
-        <div
-          key={photo.id}
-          className={`absolute select-none transition-transform ${
-            isAdmin ? "cursor-move hover:scale-105" : "cursor-default"
-          } ${draggedPhoto === photo.id ? "z-10 scale-105" : "z-0"}`}
-          style={{
-            left: photo.x,
-            top: photo.y,
-            transform: `rotate(${photo.rotation}deg)`,
-          }}
-          onMouseDown={(e) => handleMouseDown(e, photo.id)}
-          onContextMenu={(e) => {
-            if (!isAdmin) return;
-            e.preventDefault();
-            setContextMenu({ photoId: photo.id, x: e.clientX, y: e.clientY });
-          }}
-        >
+      {photos.map((photo) => {
+        const photoSize =
+          typeof photo.size === "number" ? photo.size : DEFAULT_PHOTO_SIZE;
+        const isResizing = resizingPhoto?.photoId === photo.id;
+        const isRotating = rotatingPhoto === photo.id;
+        const showPreview = isResizing && resizingPhoto;
+        return (
           <div
-            className="shadow-lg transform hover:shadow-xl transition-shadow"
-            style={{
-              background: "white",
-              padding: "6px",
-              display: "inline-block",
-            }}
+            key={photo.id}
+            className="absolute"
+            style={{ left: photo.x, top: photo.y }}
           >
-            <ImageWithFallback
-              src={photo.src}
-              alt="Memory"
-              className="object-contain"
-              style={{
-                maxWidth: "140px",
-                maxHeight: "140px",
-                width: "auto",
-                height: "auto",
-                display: "block",
+            {/* Resize preview: thin rectangle when dragging (matches photo aspect ratio) */}
+            {showPreview &&
+              (() => {
+                const ar = getPhotoAspectRatio(photo);
+                const { width: w, height: h } = sizeToDimensions(
+                  resizingPhoto.previewSize,
+                  ar,
+                );
+                return (
+                  <div
+                    className="absolute left-0 top-0 pointer-events-none border-2 border-white/90 z-20"
+                    style={{
+                      width: w + PHOTO_PADDING * 2,
+                      height: h + PHOTO_PADDING * 2,
+                      transform: `rotate(${photo.rotation}deg)`,
+                      boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
+                    }}
+                  />
+                );
+              })()}
+            {/* Rotate preview: border frame when dragging to rotate */}
+            {isRotating &&
+              (() => {
+                const ar = getPhotoAspectRatio(photo);
+                const { width: w, height: h } = sizeToDimensions(photoSize, ar);
+                return (
+                  <div
+                    className="absolute left-0 top-0 pointer-events-none border-2 border-white/90 z-20"
+                    style={{
+                      width: w + PHOTO_PADDING * 2,
+                      height: h + PHOTO_PADDING * 2,
+                      transform: `rotate(${photo.rotation}deg)`,
+                      boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
+                    }}
+                  />
+                );
+              })()}
+            <div
+              className={`absolute left-0 top-0 select-none transition-transform ${
+                isAdmin
+                  ? draggedPhoto === photo.id
+                    ? "cursor-grabbing"
+                    : "cursor-grab"
+                  : "cursor-default"
+              } ${draggedPhoto === photo.id ? "z-10" : "z-0"} ${
+                isResizing || isRotating ? "invisible" : ""
+              }`}
+              style={{ transform: `rotate(${photo.rotation}deg)` }}
+              onMouseDown={(e) => handleMouseDown(e, photo.id)}
+              onContextMenu={(e) => {
+                if (!isAdmin) return;
+                e.preventDefault();
+                setContextMenu({
+                  photoId: photo.id,
+                  x: e.clientX,
+                  y: e.clientY,
+                });
               }}
-            />
+            >
+              <div
+                className="shadow-lg transform transition-shadow relative"
+                style={{
+                  background: "white",
+                  padding: `${PHOTO_PADDING}px`,
+                  display: "inline-block",
+                }}
+              >
+                <ImageWithFallback
+                  src={photo.src}
+                  alt="Memory"
+                  className="object-contain"
+                  style={{
+                    maxWidth: `${photoSize}px`,
+                    maxHeight: `${photoSize}px`,
+                    width: "auto",
+                    height: "auto",
+                    display: "block",
+                  }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (
+                      typeof photo.width !== "number" ||
+                      typeof photo.height !== "number"
+                    ) {
+                      const w = img.naturalWidth;
+                      const h = img.naturalHeight;
+                      console.log("[photo] dimensions:", {
+                        photoId: photo.id,
+                        width: w,
+                        height: h,
+                      });
+                      setPhotos((prev) =>
+                        prev.map((p) =>
+                          p.id === photo.id ? { ...p, width: w, height: h } : p,
+                        ),
+                      );
+                    }
+                  }}
+                />
+                {isAdmin && (
+                  <>
+                    {/* Top-right: rotate handle shown only when hovering corner or actively rotating */}
+                    <div
+                      className="absolute -top-3 -right-3 h-12 w-12"
+                      onMouseEnter={() => setHoverRotateCorner(photo.id)}
+                      onMouseLeave={() => setHoverRotateCorner(null)}
+                    >
+                      {(hoverRotateCorner === photo.id ||
+                        rotatingPhoto === photo.id) && (
+                        <div
+                          className="absolute top-2 right-2 h-5 w-5 cursor-move bg-white/90 border border-slate-400 rounded-bl shadow"
+                          onMouseDown={(e) =>
+                            handleRotateMouseDown(e, photo.id)
+                          }
+                          title="Drag to rotate"
+                        />
+                      )}
+                    </div>
+                    {/* Bottom-right: resize handle shown only when hovering corner or actively resizing */}
+                    <div
+                      className="absolute -bottom-3 -right-3 h-12 w-12"
+                      onMouseEnter={() => setHoverResizeCorner(photo.id)}
+                      onMouseLeave={() => setHoverResizeCorner(null)}
+                    >
+                      {(hoverResizeCorner === photo.id ||
+                        resizingPhoto?.photoId === photo.id) && (
+                        <div
+                          className="absolute bottom-2 right-2 h-5 w-5 cursor-nwse-resize bg-white/90 border border-slate-400 rounded-tl shadow"
+                          onMouseDown={(e) =>
+                            handleResizeMouseDown(e, photo.id)
+                          }
+                          title="Drag to resize"
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

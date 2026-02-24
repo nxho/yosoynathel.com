@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
+import { imageSize } from "image-size";
 import { validateAdminKey } from "@/lib/auth";
 import { UPLOADS_DIR, PHOTOS_JSON_PATH, photoUrl } from "@/lib/uploads";
+
+const STARTING_WIDTH_PX = 80;
 
 export async function POST(request: NextRequest) {
   if (!validateAdminKey(request)) {
@@ -65,22 +68,29 @@ export async function POST(request: NextRequest) {
     // Write file to disk
     await writeFile(filepath, buffer);
 
-    // Get image dimensions (default for now)
-    let width = 80;
-    let height = 80;
+    // Get image dimensions and compute aspect ratio (width/height)
+    let aspectRatio = 1;
+    try {
+      const dims = imageSize(buffer);
+      if (dims?.width && dims?.height && dims.height > 0) {
+        aspectRatio = dims.width / dims.height;
+      }
+    } catch {
+      // keep default 1
+    }
 
     const photoId = Date.now().toString();
     const photoData = {
       id: photoId,
       src: photoUrl(filename),
-      x: Math.random() * 200 + 100, // Default position
+      x: Math.random() * 200 + 100,
       y: Math.random() * 150 + 100,
       rotation: Math.random() * 20 - 10,
       filename: file.name,
       uploadedAt: new Date().toISOString(),
-      size: file.size,
-      width,
-      height,
+      size: STARTING_WIDTH_PX,
+      aspectRatio,
+      scale: 1,
     };
 
     if (!isBackground) {
