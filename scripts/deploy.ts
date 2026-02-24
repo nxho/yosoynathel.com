@@ -95,6 +95,7 @@ async function main() {
     "generate-admin-key.ts",
     "enable-service.sh",
     "restart-service.sh",
+    "tail-logs.sh",
   ];
   const scriptsToSync = scriptNames
     .map((name) => ({ name, path: join(ROOT, "scripts", name) }))

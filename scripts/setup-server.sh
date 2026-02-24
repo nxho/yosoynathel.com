@@ -13,7 +13,7 @@
 #   DOMAIN        server_name for nginx (default: _)
 #   NEXT_PORT     Port for Next app (default: 3001)
 #   SKIP_NGINX    Set to 1 to skip nginx install/config
-#   SKIP_NODE      Set to 1 to skip bun install
+#   SKIP_BUN      Set to 1 to skip bun install
 #
 set -euo pipefail
 
@@ -21,7 +21,7 @@ DEPLOY_PATH="${DEPLOY_PATH:-/var/www/yosoynathel.com}"
 DOMAIN="${DOMAIN:-yosoynathel.com}"
 NEXT_PORT="${NEXT_PORT:-3001}"
 SKIP_NGINX="${SKIP_NGINX:-0}"
-SKIP_NODE="${SKIP_NODE:-0}"
+SKIP_BUN="${SKIP_BUN:-0}"
 
 # --- Directories ---
 echo "Creating directories under $DEPLOY_PATH..."
@@ -36,25 +36,15 @@ else
   sudo apt install -y unzip
 fi
 
-# --- Node.js (for running Next.js photos app) ---
-if [[ "$SKIP_NODE" != "1" ]]; then
-  if command -v node &>/dev/null; then
-    echo "Node.js already installed: $(node --version)"
+# --- Bun (for running Next.js photos app) ---
+if [[ "$SKIP_BUN" != "1" ]]; then
+  if command -v bun &>/dev/null; then
+    echo "Bun already installed: $(bun --version)"
   else
-    echo "Installing Node.js..."
-    if command -v apt-get &>/dev/null; then
-      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-      sudo apt-get install -y nodejs
-    elif command -v dnf &>/dev/null; then
-      curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-      sudo dnf install -y nodejs
-    elif command -v yum &>/dev/null; then
-      curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-      sudo yum install -y nodejs
-    else
-      echo "Could not detect package manager (apt-get, dnf, yum). Install Node.js manually and re-run with SKIP_NODE=1."
-      exit 1
-    fi
+    echo "Installing Bun..."
+    curl -fsSL https://bun.sh/install | bash
+    export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+    export PATH="$BUN_INSTALL/bin:$PATH"
   fi
 fi
 
@@ -151,21 +141,13 @@ Type=simple
 WorkingDirectory=$DEPLOY_PATH/photos
 Environment=PORT=$NEXT_PORT
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node server.js
+ExecStart=$HOME/.bun/bin/bun server.js
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=default.target
 EOF
-
-# If bun is in a different path, fix it
-if command -v bun &>/dev/null; then
-  BUN_PATH="$(command -v bun)"
-  if [[ "$BUN_PATH" != "$HOME/.bun/bin/bun" ]]; then
-    sed -i.bak "s|$HOME/.bun/bin/bun|$BUN_PATH|g" "$PHOTOS_SERVICE"
-  fi
-fi
 
 # --- Certbot (HTTPS via Let's Encrypt) ---
 if command -v apt-get &>/dev/null; then
