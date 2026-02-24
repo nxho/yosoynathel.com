@@ -102,11 +102,7 @@ async function main() {
   if (scriptsToSync.length > 0) {
     await run(
       "rsync",
-      [
-        "-av",
-        ...scriptsToSync.map((s) => s.path),
-        `${DEPLOY_TARGET}/scripts/`,
-      ],
+      ["-av", ...scriptsToSync.map((s) => s.path), `${DEPLOY_TARGET}/scripts/`],
       ROOT,
     );
     console.log(

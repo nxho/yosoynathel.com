@@ -88,7 +88,6 @@ server {
         try_files \$uri \$uri/ \$uri.html =404;
     }
 
-    # Strip /photos prefix so Next app sees path as /
     location /photos/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT/;
         proxy_http_version 1.1;
@@ -99,7 +98,8 @@ server {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
-    location /_next/ {
+
+    location /_next {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -107,7 +107,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-    location /api/ {
+
+    location /api {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -115,7 +116,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-    location /uploads/ {
+
+    location /uploads {
         proxy_pass http://127.0.0.1:$NEXT_PORT;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
