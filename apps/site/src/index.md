@@ -7,6 +7,6 @@ Hi there! I'm **Nathaniel** :).
 
 [Photos](/photos/)
 
-[Books](/books/)
+<!-- [Books](/books/) -->
 
 [Films](/films/)
