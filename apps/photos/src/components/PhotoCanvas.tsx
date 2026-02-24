@@ -712,6 +712,36 @@ export function PhotoCanvas() {
           document.body,
         )}
 
+      {/* Mobile: scrollable list, one photo per screen, rotation kept */}
+      <div className="flex flex-col overflow-y-auto md:hidden h-full relative z-10">
+        {photos.map((photo) => (
+            <section
+              key={photo.id}
+              className="min-h-[85dvh] flex items-center justify-center shrink-0 py-6 px-4"
+            >
+              <div
+                className="shadow-lg"
+                style={{
+                  transform: `rotate(${photo.rotation}deg)`,
+                  background: "white",
+                  padding: `${PHOTO_PADDING}px`,
+                  maxWidth: "min(90vw, 400px)",
+                  maxHeight: "75dvh",
+                }}
+              >
+                <ImageWithFallback
+                  src={photo.src}
+                  alt="Memory"
+                  draggable={false}
+                  className="object-contain block w-auto h-auto max-w-full max-h-[70dvh]"
+                />
+              </div>
+            </section>
+        ))}
+      </div>
+
+      {/* Desktop: absolute-positioned canvas */}
+      <div className="hidden md:block absolute inset-0 overflow-hidden">
       {photos.map((photo) => {
         const photoSize =
           typeof photo.size === "number" ? photo.size : DEFAULT_PHOTO_SIZE;
@@ -868,6 +898,7 @@ export function PhotoCanvas() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
