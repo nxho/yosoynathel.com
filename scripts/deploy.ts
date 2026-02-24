@@ -135,6 +135,7 @@ async function main() {
         // "--exclude=node_modules",
         "--exclude=.env",
         "--exclude=.git",
+        "--exclude=uploads",
         photosDir + "/",
         `${DEPLOY_TARGET}/photos/`,
       ],

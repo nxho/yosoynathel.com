@@ -403,25 +403,40 @@ export function PhotoCanvas() {
       e.stopPropagation();
       setRotatingPhoto(photoId);
 
-      const getCenterAndBox = (p: Photo) => {
+      const photo = photosRef.current.find((p) => p.id === photoId);
+      if (!photo) return;
+
+      const getCenter = (p: Photo) => {
         const photoSize =
           typeof p.size === "number" ? p.size : DEFAULT_PHOTO_SIZE;
         const ar = getPhotoAspectRatio(p);
         const { width: w, height: h } = sizeToDimensions(photoSize, ar);
         const boxW = w + PHOTO_PADDING * 2;
         const boxH = h + PHOTO_PADDING * 2;
-        const cx = p.x + boxW / 2;
-        const cy = p.y + boxH / 2;
-        return { boxW, boxH, cx, cy };
+        return {
+          cx: p.x + boxW / 2,
+          cy: p.y + boxH / 2,
+        };
       };
 
+      const { cx, cy } = getCenter(photo);
+      const startCursorAngle = Math.atan2(
+        e.clientY - cy,
+        e.clientX - cx,
+      );
+      const startRotationDeg = photo.rotation;
+
       const handleMouseMove = (e: MouseEvent) => {
-        const photo = photosRef.current.find((p) => p.id === photoId);
-        if (!photo) return;
-        const { boxW, boxH, cx, cy } = getCenterAndBox(photo);
-        const cursorAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
-        const cornerAngle = Math.atan2(-boxH / 2, boxW / 2);
-        const newRotationDeg = ((cursorAngle - cornerAngle) * 180) / Math.PI;
+        const current = photosRef.current.find((p) => p.id === photoId);
+        if (!current) return;
+        const { cx: cxNow, cy: cyNow } = getCenter(current);
+        const cursorAngle = Math.atan2(
+          e.clientY - cyNow,
+          e.clientX - cxNow,
+        );
+        const deltaRad = cursorAngle - startCursorAngle;
+        const deltaDeg = (deltaRad * 180) / Math.PI;
+        const newRotationDeg = startRotationDeg + deltaDeg;
         setPhotos((prev) =>
           prev.map((p) =>
             p.id === photoId ? { ...p, rotation: newRotationDeg } : p,
