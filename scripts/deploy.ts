@@ -132,7 +132,6 @@ async function main() {
       [
         "-av",
         "--delete",
-        // "--exclude=node_modules",
         "--exclude=.env",
         "--exclude=.git",
         "--exclude=uploads",

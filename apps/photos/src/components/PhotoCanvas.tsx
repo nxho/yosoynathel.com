@@ -59,32 +59,8 @@ interface Photo {
   height?: number;
 }
 
-const initialPhotos: Photo[] = [
-  // {
-  //   id: "1",
-  //   src: "https://images.unsplash.com/photo-1615574147484-ebb0b9947186?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmcmllbmRzJTIwcG9sYXJvaWQlMjBwaG90b3N8ZW58MXx8fHwxNzU5NjIzNzMxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  //   x: 50,
-  //   y: 80,
-  //   rotation: -5,
-  // },
-  // {
-  //   id: "2",
-  //   src: "https://images.unsplash.com/photo-1570632555109-90a0d0442209?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwaW5zdGFudCUyMHBob3Rvc3xlbnwxfHx8fDE3NTk2MjM3MzN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  //   x: 250,
-  //   y: 120,
-  //   rotation: 8,
-  // },
-  // {
-  //   id: "3",
-  //   src: "https://images.unsplash.com/photo-1573502344213-f7407f6685f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaWxtJTIwY2FtZXJhJTIwbWVtb3JpZXN8ZW58MXx8fHwxNzU5NjIzNzM2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  //   x: 180,
-  //   y: 200,
-  //   rotation: -12,
-  // },
-];
-
 export function PhotoCanvas() {
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [draggedPhoto, setDraggedPhoto] = useState<string | null>(null);
   const [resizingPhoto, setResizingPhoto] = useState<{
     photoId: string;
@@ -97,6 +73,7 @@ export function PhotoCanvas() {
   const [hoverResizeCorner, setHoverResizeCorner] = useState<string | null>(
     null,
   );
+  const [hoverTopRight, setHoverTopRight] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -110,7 +87,7 @@ export function PhotoCanvas() {
   const [backgroundImage, setBackgroundImage] = useState<string>(
     "/api/photo/background.jpg",
   );
-  const photosRef = useRef<Photo[]>(initialPhotos);
+  const photosRef = useRef<Photo[]>([]);
   const dragStartRef = useRef<{
     startX: number;
     startY: number;
@@ -420,20 +397,14 @@ export function PhotoCanvas() {
       };
 
       const { cx, cy } = getCenter(photo);
-      const startCursorAngle = Math.atan2(
-        e.clientY - cy,
-        e.clientX - cx,
-      );
+      const startCursorAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
       const startRotationDeg = photo.rotation;
 
       const handleMouseMove = (e: MouseEvent) => {
         const current = photosRef.current.find((p) => p.id === photoId);
         if (!current) return;
         const { cx: cxNow, cy: cyNow } = getCenter(current);
-        const cursorAngle = Math.atan2(
-          e.clientY - cyNow,
-          e.clientX - cxNow,
-        );
+        const cursorAngle = Math.atan2(e.clientY - cyNow, e.clientX - cxNow);
         const deltaRad = cursorAngle - startCursorAngle;
         const deltaDeg = (deltaRad * 180) / Math.PI;
         const newRotationDeg = startRotationDeg + deltaDeg;
@@ -610,71 +581,81 @@ export function PhotoCanvas() {
     >
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* Admin lock + upload controls: top-right */}
+      {/* Admin lock + upload controls: top-right, visible on hover */}
       {authChecked && (
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
-          {!isAdmin ? (
-            <button
-              type="button"
-              onClick={async () => {
-                const key = window.prompt("Enter admin key");
-                if (!key?.trim()) return;
-                const res = await fetch("/api/auth/check", {
-                  method: "POST",
-                  headers: { [ADMIN_KEY_HEADER]: key.trim() },
-                });
-                if (res.ok) {
-                  localStorage.setItem(ADMIN_KEY_STORAGE, key.trim());
-                  setIsAdmin(true);
-                } else {
-                  window.alert("Invalid key");
-                }
-              }}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-              title="Unlock admin mode"
-            >
-              <Lock className="h-4 w-4" />
-            </button>
-          ) : (
-            <>
-              <label
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-                title="Upload photos"
-              >
-                <Upload className="h-4 w-4" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-              <label
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-                title="Change background"
-              >
-                <ImageIcon className="h-4 w-4" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBackgroundUpload}
-                  className="hidden"
-                />
-              </label>
+        <div
+          className="absolute top-0 right-0 z-20 p-4 min-w-24 min-h-24"
+          onMouseEnter={() => setHoverTopRight(true)}
+          onMouseLeave={() => setHoverTopRight(false)}
+        >
+          <div
+            className={`flex items-center justify-end gap-2 transition-opacity duration-200 ${
+              hoverTopRight ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            {!isAdmin ? (
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.removeItem(ADMIN_KEY_STORAGE);
-                  setIsAdmin(false);
+                onClick={async () => {
+                  const key = window.prompt("Enter admin key");
+                  if (!key?.trim()) return;
+                  const res = await fetch("/api/auth/check", {
+                    method: "POST",
+                    headers: { [ADMIN_KEY_HEADER]: key.trim() },
+                  });
+                  if (res.ok) {
+                    localStorage.setItem(ADMIN_KEY_STORAGE, key.trim());
+                    setIsAdmin(true);
+                  } else {
+                    window.alert("Invalid key");
+                  }
                 }}
                 className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-                title="Lock (exit admin mode)"
+                title="Unlock admin mode"
               >
-                <LockOpen className="h-4 w-4" />
+                <Lock className="h-4 w-4" />
               </button>
-            </>
-          )}
+            ) : (
+              <>
+                <label
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+                  title="Upload photos"
+                >
+                  <Upload className="h-4 w-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+                <label
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+                  title="Change background"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBackgroundUpload}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem(ADMIN_KEY_STORAGE);
+                    setIsAdmin(false);
+                  }}
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+                  title="Lock (exit admin mode)"
+                >
+                  <LockOpen className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
