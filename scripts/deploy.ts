@@ -4,9 +4,10 @@
  * Requires: DEPLOY_TARGET (e.g. "user@host:/var/www/yosoynathel")
  * Optional: BUILD_SITE=false | BUILD_PHOTOS=false to skip a build
  *
- * 1. Builds apps/site (Eleventy → _site)
- * 2. Builds apps/photos (Next → .next)
- * 3. Rsyncs site static files and photos app to DEPLOY_TARGET
+ * 1. Syncs markdown/content into apps/site (bun run sync)
+ * 2. Builds apps/site (Eleventy → _site)
+ * 3. Builds apps/photos (Next → .next)
+ * 4. Rsyncs site static files and photos app to DEPLOY_TARGET
  *
  * On the server, for the photos app run: cd photos && bun install --production && bun run start
  */
@@ -36,6 +37,8 @@ async function main() {
   }
 
   if (BUILD_SITE) {
+    console.log("Syncing markdown (site content)...");
+    await run("bun", ["run", "sync"], join(ROOT, "apps/site"));
     console.log("Building site (Eleventy)...");
     await run("bun", ["run", "build"], join(ROOT, "apps/site"));
     const siteOut = join(ROOT, "apps/site/_site");
