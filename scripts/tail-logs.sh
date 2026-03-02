@@ -8,7 +8,7 @@ set -e
 
 if [[ -n "$DEPLOY_TARGET" && "$DEPLOY_TARGET" == *:* ]]; then
   SSH_TARGET="${DEPLOY_TARGET%%:*}"
-  exec ssh -t "$SSH_TARGET" "journalctl --user -u yosoynathel-photos -f"
+  exec ssh -t "$SSH_TARGET" "sudo journalctl -u yosoynathel-photos -f"
 else
-  exec journalctl --user -u yosoynathel-photos -f
+  exec sudo journalctl -u yosoynathel-photos -f
 fi

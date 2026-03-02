@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-systemctl --user daemon-reload
-systemctl --user enable --now yosoynathel-photos
+sudo systemctl daemon-reload
+sudo systemctl enable --now yosoynathel-photos

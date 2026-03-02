@@ -129,27 +129,33 @@ EOF
   echo "Nginx configured and reloaded."
 fi
 
-# --- Systemd user unit for Next.js photos app (optional) ---
-SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-mkdir -p "$SYSTEMD_USER_DIR"
-PHOTOS_SERVICE="$SYSTEMD_USER_DIR/yosoynathel-photos.service"
-cat > "$PHOTOS_SERVICE" <<EOF
+# --- Systemd system unit for Next.js photos app ---
+RUN_USER=$(whoami)
+RUN_HOME=$(getent passwd "$RUN_USER" 2>/dev/null | cut -d: -f6)
+RUN_HOME="${RUN_HOME:-$HOME}"
+BUN_PATH="$RUN_HOME/.bun/bin/bun"
+
+PHOTOS_SERVICE="/etc/systemd/system/yosoynathel-photos.service"
+sudo tee "$PHOTOS_SERVICE" >/dev/null <<EOF
 [Unit]
 Description=Next.js photos app (yosoynathel)
 After=network.target
 
 [Service]
 Type=simple
+User=$RUN_USER
 WorkingDirectory=$DEPLOY_PATH/photos
 Environment=PORT=$NEXT_PORT
 Environment=NODE_ENV=production
-ExecStart=$HOME/.bun/bin/bun server.js
+ExecStart=$BUN_PATH server.js
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 EOF
+sudo systemctl daemon-reload
+echo "Systemd unit installed: $PHOTOS_SERVICE"
 
 # --- Firewall ---
 sudo ufw enable
@@ -178,4 +184,6 @@ echo "  Deploy path:  $DEPLOY_PATH"
 echo "  site/        Eleventy static files (deploy script rsyncs here)"
 echo "  photos/      Next.js app (deploy script rsyncs here)"
 echo ""
+echo "To enable and start the photos app (system service):"
+echo "  sudo systemctl enable --now yosoynathel-photos"
 echo ""
