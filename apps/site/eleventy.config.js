@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import markdownIt from "markdown-it";
 import markdownItObsidian from "markdown-it-obsidian";
+import markdownItTaskLists from "markdown-it-task-lists";
 
 /** @param {import("@11ty/eleventy").UserConfig} eleventyConfig */
 export default function (eleventyConfig) {
@@ -9,9 +12,25 @@ export default function (eleventyConfig) {
   const md = markdownIt({
     html: true,
     linkify: true,
-  }).use(markdownItObsidian);
+  })
+    .use(markdownItObsidian)
+    .use(markdownItTaskLists, { label: true });
 
   eleventyConfig.setLibrary("md", md);
+
+  // Don't build "Movies to Watch.md" as its own page; it's synced from Obsidian and rendered by films/watchlist.njk
+  eleventyConfig.ignores.add("content/Movies to Watch.md");
+
+  // Rendered HTML for the watchlist page (reads synced markdown from content/)
+  eleventyConfig.addGlobalData("watchlistContent", () => {
+    const fullPath = path.join(process.cwd(), "src", "content", "Movies to Watch.md");
+    try {
+      const content = fs.readFileSync(fullPath, "utf-8");
+      return md.render(content);
+    } catch {
+      return "<p>Watchlist not found.</p>";
+    }
+  });
 
   // Format date as YYYY-MM-DD (handles Date objects and date strings)
   eleventyConfig.addNunjucksFilter("dateYYYYMMDD", (date) => {
