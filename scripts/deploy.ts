@@ -53,7 +53,9 @@ async function main() {
     await run("bun", ["run", "build"], join(ROOT, "apps/interactive"));
     const nextOut = join(ROOT, "apps/interactive/.next");
     if (!existsSync(nextOut)) {
-      console.error("Interactive build output not found: apps/interactive/.next");
+      console.error(
+        "Interactive build output not found: apps/interactive/.next",
+      );
       process.exit(1);
     }
     await run(
@@ -130,15 +132,16 @@ async function main() {
 
   if (BUILD_INTERACTIVE) {
     const interactiveDir = join(ROOT, "apps/interactive/.next/standalone");
+    const interactiveEnvFile = join(ROOT, "apps/interactive/.env");
     await run(
       "rsync",
       [
         "-av",
         "--delete",
-        "--exclude=.env",
         "--exclude=.git",
         "--exclude=uploads",
         interactiveDir + "/",
+        interactiveEnvFile,
         `${DEPLOY_TARGET}/interactive/`,
       ],
       ROOT,
