@@ -2,14 +2,14 @@
  * Build assets and rsync to remote server.
  *
  * Requires: DEPLOY_TARGET (e.g. "user@host:/var/www/yosoynathel")
- * Optional: BUILD_SITE=false | BUILD_PHOTOS=false to skip a build
+ * Optional: BUILD_SITE=false | BUILD_INTERACTIVE=false to skip a build
  *
  * 1. Syncs markdown/content into apps/site (bun run sync)
  * 2. Builds apps/site (Eleventy → _site)
- * 3. Builds apps/photos (Next → .next)
- * 4. Rsyncs site static files and photos app to DEPLOY_TARGET
+ * 3. Builds apps/interactive (Next → .next)
+ * 4. Rsyncs site static files and interactive app to DEPLOY_TARGET
  *
- * On the server, for the photos app run: cd photos && bun install --production && bun run start
+ * On the server, for the interactive app run: cd interactive && bun install --production && bun run start
  */
 
 import { spawn } from "node:child_process";
@@ -19,7 +19,7 @@ import { join } from "node:path";
 const ROOT = join(import.meta.dir, "..");
 const DEPLOY_TARGET = process.env.DEPLOY_TARGET;
 const BUILD_SITE = process.env.BUILD_SITE !== "false";
-const BUILD_PHOTOS = process.env.BUILD_PHOTOS !== "false";
+const BUILD_INTERACTIVE = process.env.BUILD_INTERACTIVE !== "false";
 
 function run(cmd: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -48,37 +48,37 @@ async function main() {
     }
   }
 
-  if (BUILD_PHOTOS) {
-    console.log("Building photos (Next)...");
-    await run("bun", ["run", "build"], join(ROOT, "apps/photos"));
-    const nextOut = join(ROOT, "apps/photos/.next");
+  if (BUILD_INTERACTIVE) {
+    console.log("Building interactive (Next)...");
+    await run("bun", ["run", "build"], join(ROOT, "apps/interactive"));
+    const nextOut = join(ROOT, "apps/interactive/.next");
     if (!existsSync(nextOut)) {
-      console.error("Photos build output not found: apps/photos/.next");
+      console.error("Interactive build output not found: apps/interactive/.next");
       process.exit(1);
     }
     await run(
       "mv",
       [
-        ".next/standalone/apps/photos/*",
-        ".next/standalone/apps/photos/.next",
+        ".next/standalone/apps/interactive/*",
+        ".next/standalone/apps/interactive/.next",
         ".next/standalone",
       ],
-      join(ROOT, "apps/photos"),
+      join(ROOT, "apps/interactive"),
     );
     await run(
       "rm",
       ["-rf", "apps"],
-      join(ROOT, "apps/photos/.next/standalone"),
+      join(ROOT, "apps/interactive/.next/standalone"),
     );
     await run(
       "cp",
       ["-r", "public", ".next/standalone"],
-      join(ROOT, "apps/photos"),
+      join(ROOT, "apps/interactive"),
     );
     await run(
       "cp",
       ["-r", ".next/static", ".next/standalone/.next"],
-      join(ROOT, "apps/photos"),
+      join(ROOT, "apps/interactive"),
     );
   }
 
@@ -128,8 +128,8 @@ async function main() {
     console.log("Site synced to " + DEPLOY_TARGET + "/site/");
   }
 
-  if (BUILD_PHOTOS) {
-    const photosDir = join(ROOT, "apps/photos/.next/standalone");
+  if (BUILD_INTERACTIVE) {
+    const interactiveDir = join(ROOT, "apps/interactive/.next/standalone");
     await run(
       "rsync",
       [
@@ -138,12 +138,12 @@ async function main() {
         "--exclude=.env",
         "--exclude=.git",
         "--exclude=uploads",
-        photosDir + "/",
-        `${DEPLOY_TARGET}/photos/`,
+        interactiveDir + "/",
+        `${DEPLOY_TARGET}/interactive/`,
       ],
       ROOT,
     );
-    console.log("Photos app synced to " + DEPLOY_TARGET + "/photos/");
+    console.log("Interactive app synced to " + DEPLOY_TARGET + "/interactive/");
   }
 
   await run(
@@ -151,7 +151,7 @@ async function main() {
     [sshTarget, `/${remotePath}/scripts/restart-service.sh`],
     ROOT,
   );
-  console.log("Photos service restarted on remote server.");
+  console.log("Interactive service restarted on remote server.");
 }
 
 main().catch((err) => {

@@ -1,5 +1,5 @@
 /**
- * Generates a new PHOTOS_ADMIN_SECRET and writes it to .env.
+ * Generates a new INTERACTIVE_ADMIN_SECRET and writes it to .env.
  * Run from repo root: bun run scripts/generate-admin-key.ts
  * On server (deploy root): bun run scripts/generate-admin-key.ts
  */
@@ -9,10 +9,10 @@ import { existsSync } from "node:fs";
 import { join } from "path";
 
 const base = process.cwd();
-const ENV_PATH = existsSync(join(base, "photos"))
-  ? join(base, "photos", ".env")
-  : join(base, "apps", "photos", ".env");
-const VAR_NAME = "PHOTOS_ADMIN_SECRET";
+const ENV_PATH = existsSync(join(base, "interactive"))
+  ? join(base, "interactive", ".env")
+  : join(base, "apps", "interactive", ".env");
+const VAR_NAME = "INTERACTIVE_ADMIN_SECRET";
 
 function generateKey(): string {
   const bytes = new Uint8Array(32);

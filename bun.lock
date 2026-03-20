@@ -4,8 +4,8 @@
     "": {
       "name": "yosoynathel.com",
     },
-    "apps/photos": {
-      "name": "@yosoynathel/photos",
+    "apps/interactive": {
+      "name": "@yosoynathel/interactive",
       "version": "0.1.0",
       "dependencies": {
         "@mdx-js/loader": "^3.1.1",
@@ -398,7 +398,7 @@
 
     "@ungap/structured-clone": ["@ungap/structured-clone@1.3.0", "", {}, "sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g=="],
 
-    "@yosoynathel/photos": ["@yosoynathel/photos@workspace:apps/photos"],
+    "@yosoynathel/interactive": ["@yosoynathel/interactive@workspace:apps/interactive"],
 
     "@yosoynathel/site": ["@yosoynathel/site@workspace:apps/site"],
 

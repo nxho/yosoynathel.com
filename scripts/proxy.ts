@@ -1,6 +1,6 @@
 /**
  * Local dev proxy:
- * - /photos, /photos/*  -> Next app (NEXT_PORT, default 3001)
+ * - /interactive, /interactive/*  -> Next app (NEXT_PORT, default 3001)
  * - /_next/*            -> Next app (assets and HMR)
  * - /api/*              -> Next app (photo canvas API)
  * - /uploads/*          -> Next app (uploaded images)
@@ -18,17 +18,17 @@ const NEXT_PORT = Number(process.env.NEXT_PORT) || 3001;
 function getTarget(url: URL): { host: string; port: number; path: string } {
   const path = url.pathname;
 
-  // Next app: /photos, /_next (assets), /api (photo canvas API), /uploads (uploaded images)
+  // Next app: /interactive, /_next (assets), /api (photo canvas API), /uploads (uploaded images)
   if (
-    path.startsWith("/photos") ||
+    path.startsWith("/interactive") ||
     path.startsWith("/_next") ||
     path.startsWith("/api") ||
     path.startsWith("/uploads")
   ) {
-    const targetPath = path.startsWith("/photos")
-      ? path === "/photos"
+    const targetPath = path.startsWith("/interactive")
+      ? path === "/interactive"
         ? "/"
-        : path.slice("/photos".length) || "/"
+        : path.slice("/interactive".length) || "/"
       : path;
     return {
       host: "127.0.0.1",
@@ -90,7 +90,7 @@ server.listen(PROXY_PORT, () => {
   const port =
     typeof addr === "object" && addr && "port" in addr ? addr.port : PROXY_PORT;
   console.log(`Proxy listening on http://localhost:${port}`);
-  console.log(`  /photos     -> Next app (http://127.0.0.1:${NEXT_PORT})`);
+  console.log(`  /interactive -> Next app (http://127.0.0.1:${NEXT_PORT})`);
   console.log(`  /_next/*    -> Next app`);
   console.log(`  /api/*      -> Next app`);
   console.log(`  /uploads/*  -> Next app`);
@@ -101,5 +101,5 @@ server.listen(PROXY_PORT, () => {
     "\nStart the static site and Next app in other terminals (from repo root):",
   );
   console.log(`  bun run dev:site        (port ${STATIC_PORT})`);
-  console.log(`  bun run dev:photos:port (port ${NEXT_PORT})`);
+  console.log(`  bun run dev:interactive (port ${NEXT_PORT})`);
 });

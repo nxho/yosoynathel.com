@@ -5,7 +5,7 @@ title: Home
 
 Hi there! I'm **Nathaniel** :).
 
-[Photos](/photos/)
+[Interactive](/interactive/)
 
 <!-- [Books](/books/) -->
 

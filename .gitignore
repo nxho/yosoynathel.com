@@ -14,11 +14,11 @@
 /apps/site/src/content/*
 
 # Next.js build output
-/apps/photos/.next
-/apps/photos/out
+/apps/interactive/.next
+/apps/interactive/out
 
 # Uploaded user content
-/apps/photos/public/uploads
+/apps/interactive/public/uploads
 
 # misc
 .DS_Store

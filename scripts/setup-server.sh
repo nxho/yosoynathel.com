@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # One-time server setup: create deploy dirs, install nginx (+ optional bun),
-# write nginx config and a systemd unit for the Next.js photos app.
+# write nginx config and a systemd unit for the Next.js interactive app.
 #
 # Run on the server (e.g. after SSH):
 #   curl -sSL https://raw.githubusercontent.com/.../setup-server.sh | bash
@@ -9,7 +9,7 @@
 #   bash setup-server.sh
 #
 # Options (env vars):
-#   DEPLOY_PATH   Base path for site + photos (default: /var/www/yosoynathel.com)
+#   DEPLOY_PATH   Base path for site + interactive (default: /var/www/yosoynathel.com)
 #   DOMAIN        server_name for nginx (default: _)
 #   NEXT_PORT     Port for Next app (default: 3001)
 #   SKIP_NGINX    Set to 1 to skip nginx install/config
@@ -27,7 +27,7 @@ SKIP_CERTBOT="${SKIP_CERTBOT:-0}"
 
 # --- Directories ---
 echo "Creating directories under $DEPLOY_PATH..."
-sudo mkdir -p "$DEPLOY_PATH"/{site,photos}
+sudo mkdir -p "$DEPLOY_PATH"/{site,interactive}
 sudo chown -R "$(whoami):" "$DEPLOY_PATH" 2>/dev/null || true
 
 if command -v unzip &>/dev/null; then
@@ -38,7 +38,7 @@ else
   sudo apt install -y unzip
 fi
 
-# --- Bun (for running Next.js photos app) ---
+# --- Bun (for running Next.js interactive app) ---
 if [[ "$SKIP_BUN" != "1" ]]; then
   if command -v bun &>/dev/null; then
     echo "Bun already installed: $(bun --version)"
@@ -70,7 +70,7 @@ if [[ "$SKIP_NGINX" != "1" ]]; then
   NGINX_SITE="yosoynathel.com"
   NGINX_CONF="/etc/nginx/sites-available/$NGINX_SITE"
   sudo tee "$NGINX_CONF" >/dev/null <<EOF
-# Static site (Eleventy) at root; Next.js photos app at /photos, /_next, /api, /uploads
+# Static site (Eleventy) at root; Next.js interactive app at /interactive, /_next, /api, /uploads
 server {
     listen 80;
     server_name $DOMAIN www.$DOMAIN;
@@ -80,7 +80,7 @@ server {
         try_files \$uri \$uri/ \$uri.html =404;
     }
 
-    location /photos/ {
+    location /interactive/ {
         proxy_pass http://127.0.0.1:$NEXT_PORT/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -129,22 +129,22 @@ EOF
   echo "Nginx configured and reloaded."
 fi
 
-# --- Systemd system unit for Next.js photos app ---
+# --- Systemd system unit for Next.js interactive app ---
 RUN_USER=$(whoami)
 RUN_HOME=$(getent passwd "$RUN_USER" 2>/dev/null | cut -d: -f6)
 RUN_HOME="${RUN_HOME:-$HOME}"
 BUN_PATH="$RUN_HOME/.bun/bin/bun"
 
-PHOTOS_SERVICE="/etc/systemd/system/yosoynathel-photos.service"
-sudo tee "$PHOTOS_SERVICE" >/dev/null <<EOF
+INTERACTIVE_SERVICE="/etc/systemd/system/yosoynathel-interactive.service"
+sudo tee "$INTERACTIVE_SERVICE" >/dev/null <<EOF
 [Unit]
-Description=Next.js photos app (yosoynathel)
+Description=Next.js interactive app (yosoynathel)
 After=network.target
 
 [Service]
 Type=simple
 User=$RUN_USER
-WorkingDirectory=$DEPLOY_PATH/photos
+WorkingDirectory=$DEPLOY_PATH/interactive
 Environment=PORT=$NEXT_PORT
 Environment=NODE_ENV=production
 ExecStart=$BUN_PATH server.js
@@ -155,7 +155,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
-echo "Systemd unit installed: $PHOTOS_SERVICE"
+echo "Systemd unit installed: $INTERACTIVE_SERVICE"
 
 # --- Firewall ---
 sudo ufw enable
@@ -182,8 +182,8 @@ echo "Setup complete."
 echo ""
 echo "  Deploy path:  $DEPLOY_PATH"
 echo "  site/        Eleventy static files (deploy script rsyncs here)"
-echo "  photos/      Next.js app (deploy script rsyncs here)"
+echo "  interactive/  Next.js app (deploy script rsyncs here)"
 echo ""
-echo "To enable and start the photos app (system service):"
-echo "  sudo systemctl enable --now yosoynathel-photos"
+echo "To enable and start the interactive app (system service):"
+echo "  sudo systemctl enable --now yosoynathel-interactive"
 echo ""
